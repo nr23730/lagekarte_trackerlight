@@ -21,13 +21,10 @@ import android.widget.TextView;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
-/**
- * A login screen that offers login via email/password.
- */
 public class TrackerSettings extends AppCompatActivity {
 
     // UI references.
-    private EditText mEmailView;
+    private EditText mDeviceNumber;
     private EditText mPasswordView;
     private boolean permissionsGranted = false;
 
@@ -36,14 +33,14 @@ public class TrackerSettings extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tracker_settings);
         // Set up the login form.
-        mEmailView = findViewById(R.id.email);
+        mDeviceNumber = findViewById(R.id.txtDevice);
 
         SharedPreferences sharedPref = getSharedPreferences("TrackerSettings", MODE_PRIVATE);
         String deviceNum = sharedPref.getString("DeviceNumber", "0");
 
-        mEmailView.setText(deviceNum);
+        mDeviceNumber.setText(deviceNum);
 
-        mPasswordView = findViewById(R.id.password);
+        mPasswordView = findViewById(R.id.txtPassword);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -55,8 +52,8 @@ public class TrackerSettings extends AppCompatActivity {
             }
         });
 
-        Button mEmailSignInButton = findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        Button mSaveButton = findViewById(R.id.btnSave);
+        mSaveButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptLogin();
@@ -74,7 +71,7 @@ public class TrackerSettings extends AppCompatActivity {
             return true;
         }
         if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
+            Snackbar.make(mDeviceNumber, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
                     .setAction(android.R.string.ok, new View.OnClickListener() {
                         @Override
                         @TargetApi(Build.VERSION_CODES.M)
@@ -102,11 +99,11 @@ public class TrackerSettings extends AppCompatActivity {
     private void attemptLogin() {
 
         // Reset errors.
-        mEmailView.setError(null);
+        mDeviceNumber.setError(null);
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String deviceNumber = mEmailView.getText().toString();
+        String deviceNumber = mDeviceNumber.getText().toString();
         String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
@@ -119,14 +116,13 @@ public class TrackerSettings extends AppCompatActivity {
             cancel = true;
         }
 
-        // Check for a valid email address.
         if (TextUtils.isEmpty(deviceNumber)) {
-            mEmailView.setError(getString(R.string.error_field_required));
-            focusView = mEmailView;
+            mDeviceNumber.setError(getString(R.string.error_field_required));
+            focusView = mDeviceNumber;
             cancel = true;
         } else if (isDeviceNumberValid(deviceNumber) == 0) {
-            mEmailView.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailView;
+            mDeviceNumber.setError(getString(R.string.error_invalid_email));
+            focusView = mDeviceNumber;
             cancel = true;
         }
 
@@ -152,7 +148,7 @@ public class TrackerSettings extends AppCompatActivity {
     }
 
     private boolean isPasswordValid(String password) {
-        return password.equals("");
+        return password.equals(getString(R.string.password));
     }
 }
 

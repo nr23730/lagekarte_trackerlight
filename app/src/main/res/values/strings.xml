@@ -3,12 +3,15 @@
     <string name="title_activity_tracker_settings">GPS-Tracker Einstellungen</string>
 
     <!-- Strings related to login -->
-    <string name="prompt_email">Gerätenummer</string>
+    <string name="prompt_devicenumber">Gerätenummer</string>
     <string name="prompt_password">Passwort</string>
-    <string name="action_sign_in">Einstellungen speichern</string>
-    <string name="action_sign_in_short">Sichern</string>
+    <string name="action_save">Einstellungen speichern</string>
+    <string name="action_save_short">Sichern</string>
     <string name="error_invalid_email">Ungültige Gerätenummer</string>
     <string name="error_invalid_password">Falsches Passwort</string>
     <string name="error_field_required">Pflichtfeld!</string>
     <string name="permission_rationale">"GPS wird für den Tracker benötigt."</string>
+    <string name="started">GPS-Tracker aktiv!</string>
+    <string name="starttext">Das Gerät ist jetzt in der Lagekarte verzeichnet.</string>
+    <string name="channel">Aktiver Status</string>
 </resources>
