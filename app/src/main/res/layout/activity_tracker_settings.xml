@@ -85,6 +85,12 @@
                 android:text="@string/action_save"
                 android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Version 1.1, Kieler Woche 2018" />
+
         </LinearLayout>
     </ScrollView>
 

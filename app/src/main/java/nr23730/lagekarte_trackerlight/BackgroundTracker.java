@@ -35,8 +35,7 @@ public class BackgroundTracker extends Service {
     private NotificationManager mNM;
     private int NOTIFICATION = R.string.app_name;
     int offset = 0;
-    private double currLat;
-    private double currLong;
+    private Location currentBest;
     private String deviceNumber;
 
     @SuppressLint("WrongConstant")
@@ -93,10 +92,10 @@ public class BackgroundTracker extends Service {
             @Override
             public void onLocationChanged(final Location location) {
 
-                currLat = location.getLatitude();
-                currLong = location.getLongitude();
-                uploadPosition();
-
+                if(isBetterLocation(location, currentBest)) {
+                    uploadPosition(location);
+                    currentBest = location;
+                }
             }
 
             @Override
@@ -116,9 +115,9 @@ public class BackgroundTracker extends Service {
         LocationManager mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60000,
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 4000,
                     0, mLocationListener);
-            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60000,
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000,
                     0, mLocationListener);
         }
 
@@ -146,13 +145,13 @@ public class BackgroundTracker extends Service {
         }
     }
 
-    private void uploadPosition() {
+    private void uploadPosition(Location loc) {
 
         int batteryLevel = ((BatteryManager) getSystemService(BATTERY_SERVICE)).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
 
         URL url = null;
         try {
-            url = new URL("https://webapp.mobile-lagekarte.de/appservices/app-tracking-api/InsertData.php?id=" + getString(R.string.prefix) + deviceNumber + "&lat=" + currLat + "&long=" + currLong + "&orga=" + getString(R.string.account) + "&plattform=golden-nougat-light&version=0.4&capacity=" + batteryLevel);
+            url = new URL("https://webapp.mobile-lagekarte.de/appservices/app-tracking-api/InsertData.php?id=" + getString(R.string.prefix) + deviceNumber + "&lat=" + loc.getLatitude() + "&long=" + loc.getLongitude() + "&orga=" + getString(R.string.account) + "&plattform=golden-nougat-light&version=0.4&capacity=" + batteryLevel);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -177,6 +176,62 @@ public class BackgroundTracker extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private static final int TWO_MINUTES = 1000 * 60 * 4;
+
+    /** Determines whether one Location reading is better than the current Location fix
+     * @param location  The new Location that you want to evaluate
+     * @param currentBestLocation  The current Location fix, to which you want to compare the new one
+     */
+    protected boolean isBetterLocation(Location location, Location currentBestLocation) {
+        if (currentBestLocation == null) {
+            // A new location is always better than no location
+            return true;
+        }
+
+        // Check whether the new location fix is newer or older
+        long timeDelta = location.getTime() - currentBestLocation.getTime();
+        boolean isSignificantlyNewer = timeDelta > TWO_MINUTES;
+        boolean isSignificantlyOlder = timeDelta < -TWO_MINUTES;
+        boolean isNewer = timeDelta > 0;
+
+        // If it's been more than two minutes since the current location, use the new location
+        // because the user has likely moved
+        if (isSignificantlyNewer) {
+            return true;
+            // If the new location is more than two minutes older, it must be worse
+        } else if (isSignificantlyOlder) {
+            return false;
+        }
+
+        // Check whether the new location fix is more or less accurate
+        int accuracyDelta = (int) (location.getAccuracy() - currentBestLocation.getAccuracy());
+        boolean isLessAccurate = accuracyDelta > 0;
+        boolean isMoreAccurate = accuracyDelta < 0;
+        boolean isSignificantlyLessAccurate = accuracyDelta > 200;
+
+        // Check if the old and new location are from the same provider
+        boolean isFromSameProvider = isSameProvider(location.getProvider(),
+                currentBestLocation.getProvider());
+
+        // Determine location quality using a combination of timeliness and accuracy
+        if (timeDelta > 180000 && isMoreAccurate) {
+            return true;
+        } else if (timeDelta > 180000 && !isLessAccurate) {
+            return true;
+        } else if (timeDelta > 180000 && !isSignificantlyLessAccurate && isFromSameProvider) {
+            return true;
+        }
+        return false;
+    }
+
+    /** Checks whether two providers are the same */
+    private boolean isSameProvider(String provider1, String provider2) {
+        if (provider1 == null) {
+            return provider2 == null;
+        }
+        return provider1.equals(provider2);
     }
 
 }
