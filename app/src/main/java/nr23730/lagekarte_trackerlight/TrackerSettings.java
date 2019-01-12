@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.READ_PHONE_STATE;
 
 public class TrackerSettings extends AppCompatActivity {
 
@@ -31,58 +32,32 @@ public class TrackerSettings extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tracker_settings);
-        // Set up the login form.
-        mDeviceNumber = findViewById(R.id.txtDevice);
 
-        SharedPreferences sharedPref = getSharedPreferences("TrackerSettings", MODE_PRIVATE);
-        String deviceNum = sharedPref.getString("DeviceNumber", "0");
-
-        mDeviceNumber.setText(deviceNum);
-
-        mPasswordView = findViewById(R.id.txtPassword);
-        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-                if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
-                    attemptLogin();
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        Button mSaveButton = findViewById(R.id.btnSave);
-        mSaveButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptLogin();
-            }
-        });
-
-        permissionsGranted = mayRequestLocation();
+        mayRequestLocation();
     }
 
     private boolean mayRequestLocation() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return true;
         }
-        if (checkSelfPermission(ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && checkSelfPermission(READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
             return true;
         }
-        if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION)) {
+        if (shouldShowRequestPermissionRationale(ACCESS_FINE_LOCATION) || shouldShowRequestPermissionRationale(READ_PHONE_STATE)) {
             Snackbar.make(mDeviceNumber, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
                     .setAction(android.R.string.ok, new View.OnClickListener() {
                         @Override
                         @TargetApi(Build.VERSION_CODES.M)
                         public void onClick(View v) {
                             requestPermissions(new String[]{ACCESS_FINE_LOCATION}, 0x1);
+                            requestPermissions(new String[]{READ_PHONE_STATE}, 0x1);
                         }
                     });
         } else {
-            requestPermissions(new String[]{ACCESS_FINE_LOCATION}, 0x1);
+            requestPermissions(new String[]{ACCESS_FINE_LOCATION,READ_PHONE_STATE}, 0x1);
             return permissionsGranted;
         }
+
         return false;
     }
 
@@ -95,60 +70,4 @@ public class TrackerSettings extends AppCompatActivity {
             }
         }
     }
-
-    private void attemptLogin() {
-
-        // Reset errors.
-        mDeviceNumber.setError(null);
-        mPasswordView.setError(null);
-
-        // Store values at the time of the login attempt.
-        String deviceNumber = mDeviceNumber.getText().toString();
-        String password = mPasswordView.getText().toString();
-
-        boolean cancel = false;
-        View focusView = null;
-
-        // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-            mPasswordView.setError(getString(R.string.error_invalid_password));
-            focusView = mPasswordView;
-            cancel = true;
-        }
-
-        if (TextUtils.isEmpty(deviceNumber)) {
-            mDeviceNumber.setError(getString(R.string.error_field_required));
-            focusView = mDeviceNumber;
-            cancel = true;
-        } else if (isDeviceNumberValid(deviceNumber) == 0) {
-            mDeviceNumber.setError(getString(R.string.error_invalid_email));
-            focusView = mDeviceNumber;
-            cancel = true;
-        }
-
-        if (cancel) {
-            focusView.requestFocus();
-        } else {
-            if (permissionsGranted) {
-                SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = sharedPref.edit();
-                editor.putString("DeviceNumber", deviceNumber);
-                editor.commit();
-
-                Intent myIntent = new Intent(this.getApplicationContext(), BackgroundTracker.class);
-                this.getApplicationContext().startService(myIntent);
-            }
-        }
-    }
-
-    private int isDeviceNumberValid(String deviceNumber) {
-        int device = 0;
-        device = Integer.valueOf(deviceNumber);
-        return device;
-    }
-
-    private boolean isPasswordValid(String password) {
-        return password.equals(getString(R.string.password));
-    }
 }
-

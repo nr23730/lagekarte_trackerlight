@@ -7,6 +7,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -19,6 +20,7 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.telephony.TelephonyManager;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,17 +40,29 @@ public class BackgroundTracker extends Service {
     private Location currentBest;
     private String deviceNumber;
 
-    @SuppressLint("WrongConstant")
+    @SuppressLint({"WrongConstant", "HardwareIds"})
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         super.onStartCommand(intent, flags, startId);
 
+        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            System.out.println("imei="+telephonyManager.getDeviceId());
+        }
+        System.out.println("bla=123");
         SharedPreferences sharedPref = getSharedPreferences("TrackerSettings", MODE_PRIVATE);
         deviceNumber = sharedPref.getString("DeviceNumber", "0");
 
-        if (deviceNumber.equals("0"))
-            return START_NOT_STICKY;
+        //if (deviceNumber.equals("0"))
+        //    return START_NOT_STICKY;
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
