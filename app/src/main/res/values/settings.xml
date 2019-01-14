@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="account"></string>
-    <string name="prefix"></string>
-    <string name="number"></string>
-    <string name="interval"></string>
-    <string name="active"></string>
-</resources>

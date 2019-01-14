@@ -21,24 +21,37 @@ import android.os.StrictMode;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.telephony.TelephonyManager;
+import android.util.Log;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 public class BackgroundTracker extends Service {
 
     Notification notification = null;
     private NotificationManager mNM;
     private int NOTIFICATION = R.string.app_name;
-    int offset = 0;
     private Location currentBest;
-    private String deviceNumber;
+
+    private String account;
+    private String prefix;
+    private int number;
+    private String imei;
+    private int interval;
+    private boolean active;
+    private int icon;
 
     @SuppressLint({"WrongConstant", "HardwareIds"})
     @Override
@@ -48,21 +61,43 @@ public class BackgroundTracker extends Service {
 
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            System.out.println("imei="+telephonyManager.getDeviceId());
+            imei = telephonyManager.getDeviceId();
         }
-        System.out.println("bla=123");
-        SharedPreferences sharedPref = getSharedPreferences("TrackerSettings", MODE_PRIVATE);
-        deviceNumber = sharedPref.getString("DeviceNumber", "0");
 
-        //if (deviceNumber.equals("0"))
-        //    return START_NOT_STICKY;
+        String xmlString = "<config>\n" +
+                "\t<account>DLRGLuebeck</account>\n" +
+                "\t<prefix>H</prefix>\n" +
+                "\t<number>14</number>\n" +
+                "\t<interval>60</interval>\n" +
+                "\t<active>1</active>\n" +
+                "\t<icon>0</icon>\n" +
+                "</config>";
+
+        Document doc = null;
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        try {
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            InputSource is = new InputSource();
+            is.setCharacterStream(new StringReader(xmlString));
+            doc = db.parse(is);
+        } catch (ParserConfigurationException e) {
+        } catch (SAXException e) {
+        } catch (IOException e) {
+        }
+
+        Element xmlAktiendaten = doc.getDocumentElement();
+        NodeList aktienListe = xmlAktiendaten.getElementsByTagName("config");
+        account = aktienListe.item(0).getNodeValue();
+        prefix = aktienListe.item(1).getNodeValue();
+        number = Integer.parseInt(aktienListe.item(2).getNodeValue());
+        interval = Integer.parseInt(aktienListe.item(3).getNodeValue());
+        active = Boolean.parseBoolean(aktienListe.item(4).getNodeValue());
+        icon = Integer.parseInt(aktienListe.item(5).getNodeValue());
+
+        System.out.println(account);
+
+        if (number == 0 || !active)
+            return START_NOT_STICKY;
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
@@ -114,7 +149,6 @@ public class BackgroundTracker extends Service {
 
             @Override
             public void onStatusChanged(String provider, int status, Bundle extras) {
-
             }
 
             @Override
@@ -165,7 +199,7 @@ public class BackgroundTracker extends Service {
 
         URL url = null;
         try {
-            url = new URL("https://webapp.mobile-lagekarte.de/appservices/app-tracking-api/InsertData.php?id=" + getString(R.string.prefix) + deviceNumber + "&lat=" + loc.getLatitude() + "&long=" + loc.getLongitude() + "&orga=" + getString(R.string.account) + "&plattform=golden-nougat-light&version=0.4&capacity=" + batteryLevel);
+            url = new URL("https://webapp.mobile-lagekarte.de/appservices/app-tracking-api/InsertData.php?id=" + prefix + number + "&lat=" + loc.getLatitude() + "&long=" + loc.getLongitude() + "&orga=" + account + "&plattform=golden-nougat-light&version=0.4&capacity=" + batteryLevel);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -230,11 +264,11 @@ public class BackgroundTracker extends Service {
                 currentBestLocation.getProvider());
 
         // Determine location quality using a combination of timeliness and accuracy
-        if (timeDelta > 180000 && isMoreAccurate) {
+        if (timeDelta > interval * 1000 && isMoreAccurate) {
             return true;
-        } else if (timeDelta > 180000 && !isLessAccurate) {
+        } else if (timeDelta > interval * 1000 && !isLessAccurate) {
             return true;
-        } else if (timeDelta > 180000 && !isSignificantlyLessAccurate && isFromSameProvider) {
+        } else if (timeDelta > interval * 1000 && !isSignificantlyLessAccurate && isFromSameProvider) {
             return true;
         }
         return false;
