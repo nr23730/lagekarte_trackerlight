@@ -9,7 +9,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -22,21 +21,16 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 public class BackgroundTracker extends Service {
 
@@ -64,37 +58,53 @@ public class BackgroundTracker extends Service {
             imei = telephonyManager.getDeviceId();
         }
 
-        String xmlString = "<config>\n" +
-                "\t<account>DLRGLuebeck</account>\n" +
-                "\t<prefix>H</prefix>\n" +
-                "\t<number>14</number>\n" +
-                "\t<interval>60</interval>\n" +
-                "\t<active>1</active>\n" +
-                "\t<icon>0</icon>\n" +
-                "</config>";
+        String str="http://niklas-surface/trackerserver/test.json";
+        URLConnection urlConn = null;
+        BufferedReader bufferedReader = null;
+        JSONObject config = new JSONObject();
 
-        Document doc = null;
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        try
+        {
+            URL url = new URL(str);
+            urlConn = url.openConnection();
+            bufferedReader = new BufferedReader(new InputStreamReader(urlConn.getInputStream()));
+
+            StringBuffer stringBuffer = new StringBuffer();
+            String line;
+            while ((line = bufferedReader.readLine()) != null)
+            {
+                stringBuffer.append(line);
+            }
+
+            config = new JSONObject(stringBuffer.toString()).getJSONObject("config");
+        }
+        catch(Exception ex)
+        {
+            Log.e("lagekarte_trackerlight", "download settings", ex);
+        }
+        finally
+        {
+            if(bufferedReader != null)
+            {
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         try {
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            InputSource is = new InputSource();
-            is.setCharacterStream(new StringReader(xmlString));
-            doc = db.parse(is);
-        } catch (ParserConfigurationException e) {
-        } catch (SAXException e) {
-        } catch (IOException e) {
+            account = config.getString("account");
+            prefix = config.getString("prefix");
+            number = config.getInt("number");
+            interval = config.getInt("interval");
+            active = config.getBoolean("active");
+            icon = config.getInt("icon");
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
-        Element xmlAktiendaten = doc.getDocumentElement();
-        NodeList aktienListe = xmlAktiendaten.getElementsByTagName("config");
-        account = aktienListe.item(0).getNodeValue();
-        prefix = aktienListe.item(1).getNodeValue();
-        number = Integer.parseInt(aktienListe.item(2).getNodeValue());
-        interval = Integer.parseInt(aktienListe.item(3).getNodeValue());
-        active = Boolean.parseBoolean(aktienListe.item(4).getNodeValue());
-        icon = Integer.parseInt(aktienListe.item(5).getNodeValue());
-
-        System.out.println(account);
+        System.out.println("account=" + account);
 
         if (number == 0 || !active)
             return START_NOT_STICKY;

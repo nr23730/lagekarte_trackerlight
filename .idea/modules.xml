@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/LagekarteTrackerlight.iml" filepath="$PROJECT_DIR$/LagekarteTrackerlight.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lagekarte_trackerlight.iml" filepath="$PROJECT_DIR$/.idea/modules/lagekarte_trackerlight.iml" />
+      <module fileurl="file://$PROJECT_DIR$/lagekarte_trackerlight.iml" filepath="$PROJECT_DIR$/lagekarte_trackerlight.iml" />
     </modules>
   </component>
 </project>
